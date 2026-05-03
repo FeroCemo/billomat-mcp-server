@@ -1,0 +1,29 @@
+{"version":3,"file":"index.js","sourceRoot":"","sources":["../src/index.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,SAAS,EAAE,MAAM,yCAAyC,CAAC;AACpE,OAAO,EAAE,oBAAoB,EAAE,MAAM,2CAA2C,CAAC;AACjF,OAAO,EAAE,6BAA6B,EAAE,MAAM,oDAAoD,CAAC;AACnG,OAAO,OAAO,MAAM,SAAS,CAAC;AAC9B,OAAO,EAAE,cAAc,EAAE,MAAM,sBAAsB,CAAC;AACtD,OAAO,EAAE,mBAAmB,EAAE,MAAM,oBAAoB,CAAC;AACzD,OAAO,EAAE,oBAAoB,EAAE,MAAM,qBAAqB,CAAC;AAC3D,OAAO,EAAE,kBAAkB,EAAE,MAAM,mBAAmB,CAAC;AAEvD,kEAAkE;AAClE,MAAM,WAAW,GAAG,OAAO,CAAC,GAAG,CAAC,WAAW,CAAC;AAC5C,MAAM,gBAAgB,GAAG,OAAO,CAAC,GAAG,CAAC,gBAAgB,CAAC;AAEtD,IAAI,CAAC,WAAW,IAAI,CAAC,gBAAgB,EAAE,CAAC;IACtC,OAAO,CAAC,KAAK,CACX,sCAAsC;QACtC,4EAA4E;QAC5E,+EAA+E,CAChF,CAAC;IACF,OAAO,CAAC,IAAI,CAAC,CAAC,CAAC,CAAC;AAClB,CAAC;AAED,kEAAkE;AAClE,MAAM,MAAM,GAAG,IAAI,SAAS,CAAC;IAC3B,IAAI,EAAE,qBAAqB;IAC3B,OAAO,EAAE,OAAO;CACjB,CAAC,CAAC;AAEH,MAAM,GAAG,GAAG,IAAI,cAAc,CAAC,EAAE,UAAU,EAAE,WAAW,EAAE,MAAM,EAAE,gBAAgB,EAAE,CAAC,CAAC;AAEtF,qBAAqB;AACrB,mBAAmB,CAAC,MAAM,EAAE,GAAG,CAAC,CAAC;AACjC,oBAAoB,CAAC,MAAM,EAAE,GAAG,CAAC,CAAC;AAClC,kBAAkB,CAAC,MAAM,EAAE,GAAG,CAAC,CAAC;AAEhC,kEAAkE;AAClE,MAAM,SAAS,GAAG,OAAO,CAAC,GAAG,CAAC,SAAS,IAAI,OAAO,CAAC;AAEnD,KAAK,UAAU,QAAQ;IACrB,MAAM,SAAS,GAAG,IAAI,oBAAoB,EAAE,CAAC;IAC7C,MAAM,MAAM,CAAC,OAAO,CAAC,SAAS,CAAC,CAAC;IAChC,OAAO,CAAC,KAAK,CAAC,mCAAmC,CAAC,CAAC;AACrD,CAAC;AAED,KAAK,UAAU,OAAO;IACpB,MAAM,GAAG,GAAG,OAAO,EAAE,CAAC;IACtB,GAAG,CAAC,GAAG,CAAC,OAAO,CAAC,IAAI,EAAE,CAAC,CAAC;IAExB,GAAG,CAAC,IAAI,CAAC,MAAM,EAAE,KAAK,EAAE,GAAG,EAAE,GAAG,EAAE,EAAE;QAClC,MAAM,SAAS,GAAG,IAAI 6BAA6B({
+            sessionIdGenerator: undefined,
+            enableJsonResponse: true,
+        });
+        res.on("close", () => transport.close());
+        await server.connect(transport);
+        await transport.handleRequest(req, res, req.body);
+    });
+    app.get("/health", (_req, res) => {
+        res.json({ status: "ok", server: "billomat-mcp-server", version: "1.0.0" });
+    });
+    const PORT = parseInt(process.env.PORT <? "3000");
+    app.listen(PORT, () => {
+        console.error(`Billomat MCP Server läuft auf http://localhost:${PORT}/mcp`);
+    });
+}
+if (TRANSPORT === "http") {
+    runHTTP().catch((err) => {
+        console.error("Server Fehler:", err);
+        process.exit(1);
+    });
+}
+else {
+    runStdio().catch((err) => {
+        console.error("Server Fehler:", err);
+        process.exit(1);
+    });
+}
+//# sourceMappingURL=index.js.map
