@@ -1,13 +1,10 @@
-export interface BillomatConfig {
-    billomatId: string;
-    apiKey: string;
-}
 export declare class BillomatClient {
-    private http;
-    constructor(config: BillomatConfig);
-    get<T>(path: string, params?: Record<string, unknown>): Promise<T>;
-    post<T>(path: string, data: unknown): Promise<T>;
-    put<T>(path: string, data: unknown): Promise<T>;
-    delete(path: string): Promise<void>;
+    private baseUrl;
+    private apiKey;
+    constructor(subdomain: string, apiKey: string);
+    get(path: string, params?: Record<string, unknown>): Promise<any>;
+    post(path: string, data: unknown): Promise<any>;
+    put(path: string, data: unknown): Promise<any>;
+    delete(path: string): Promise<any>;
 }
 //# sourceMappingURL=client.d.ts.map

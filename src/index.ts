@@ -6,15 +6,22 @@ import { BillomatClient } from "./services/client.js";
 import { registerClientTools } from "./tools/clients.js";
 import { registerInvoiceTools } from "./tools/invoices.js";
 import { registerOfferTools } from "./tools/offers.js";
+import { authMiddleware } from "./auth/middleware.js";
+import webhookRouter from "./auth/webhook.js";
+import checkoutRouter from "./auth/checkout.js";
 
 const useHttp = process.env.PORT || process.env.MCP_HTTP;
 
 if (useHttp) {
   const port = parseInt(process.env.PORT || "3000", 10);
   const app = express();
+  // Raw body for Stripe signature verification — must be before express.json()
+  app.use('/webhook', express.raw({ type: 'application/json' }));
   app.use(express.json());
+  app.use(webhookRouter);
+  app.use(checkoutRouter);
 
-  app.post("/mcp", async (req, res) => {
+  app.post("/mcp", authMiddleware, async (req, res) => {
     const apiKey =
       (req.headers["x-billomat-api-key"] as string) ||
       process.env.BILLOMAT_API_KEY;

@@ -1,78 +1,47 @@
 import { z } from "zod";
 import { toArray } from "../types.js";
 export function registerOfferTools(server, api) {
-    // ── LIST OFFERS ───────────────────────────────────────────────
-    server.registerTool("billomat_list_offers", {
-        title: "Angebote auflisten",
-        description: `Listet Angebote auf, optional gefiltert.
-
-Args:
-  - client_id (string, optional): Nur Angebote dieses Kunden
-  - status (string, optional): DRAFT | OPEN | WON | LOST | CANCELLED
-  - page (number, optional): Seite (Standard: 1)
-  - per_page (number, optional): Pro Seite 1–100 (Standard: 25)`,
-        inputSchema: z.object({
-            client_id: z.string().optional(),
-            status: z.enum(["DRAFT", "OPEN", "WON", "LOST", "CANCELLED"]).optional(),
-            page: z.number().int().min(1).default(1),
-            per_page: z.number().int().min(1).max(100).default(25),
-        }).strict(),
-        annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
-    }, async ({ client_id, status, page, per_page }) => {
-        const data = await api.get("/offers", { client_id, status, page, per_page });
-        const offers = toArray(data.offers?.offer);
-        const total = data.offers?.["@total"] ?? "0";
-        if (!offers.length)
-            return { content: [{ type: "text", text: "Keine Angebote gefunden." }] };
-        const rows = offers.map(o => `[${o.id}] ${o.offer_number} | ${o.status} | Datum: ${o.date} | Brutto: ${o.total_gross ?? "–"} €`).join("\n");
-        return { content: [{ type: "text", text: `Angebote (${offers.length} von ${total}):\n\n${rows}` }] };
-    });
-    // ── CREATE OFFER ──────────────────────────────────────────────
-    server.registerTool("billomat_create_offer", {
-        title: "Angebot erstellen",
-        description: `Erstellt ein neues Angebot als Entwurf. Positionen møssen separat hinzugeføgdt werden.
-
-Args:
-  - client_id (string): Billomat-ID des Kunden (Pflichtfeld)
-  - date (string): Angebotsdatum YYYY-MM-DD (Pflichtfeld)
-  - validity_date (string, optional): Gøltig bis YYYY-MM-DD
-  - label (string, optional): Betreff
-  - intro (string, optional): Einleitungstext
-  - note (string, optional): Schlusstext`,
-        inputSchema: z.object({
-            client_id: z.string().describe("Billomat-ID des Kunden"),
-            date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).describe("Angebotsdatum YYYY-MM-DD"),
-            validity_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().describe("Gøltig bis YYYY-MM-DD"),
-            label: z.string().optional().describe("Betreff des Angebots"),
-            intro: z.string().optional(),
-            note: z.string().optional(),
-            currency_code: z.string().length(3).default("EUR"),
-        }).strict(),
-        annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+    server.tool("list-offers", "List all offers/quotes from Billomat", {
+        client_id: z.number().optional().describe("Filter by client ID"),
+        status: z.enum(["draft", "open", "accepted", "rejected", "cancelled"]).optional(),
+        from: z.string().optional().describe("Start date YYYY-MM-DD"),
+        to: z.string().optional().describe("End date YYYY-MM-DD"),
+        per_page: z.number().optional(),
+        page: z.number().optional(),
     }, async (params) => {
-        const data = await api.post("/offers", { offer: params });
-        const o = data.offer;
-        return {
-            content: [{
-                    type: "text",
-                    text: `✅ Angebot erstellt:\nID: ${o.id}\nNummer: ${o.offer_number}\nStatus: ${o.status}`
-                }]
-        };
+        const p = Object.fromEntries(Object.entries(params).filter(([, v]) => v !== undefined));
+        const response = await api.get("/offers", p);
+        const offers = toArray(response?.offers?.offer);
+        return { content: [{ type: "text", text: JSON.stringify(offers, null, 2) }] };
     });
-    // ── MARK OFFER WON ────────────────────────────────────────────
-    server.registerTool("billomat_win_offer", {
-        title: "Angebot als gewonnen markieren",
-        description: `Markiert ein Angebot als gewonnen (WON). Ermøglicht danach die Umwandlung in eine Rechnung.
-
-Args:
-  - offer_id (string): ID des Angebots`,
-        inputSchema: z.object({
-            offer_id: z.string().describe("ID des Angebots"),
-        }).strict(),
-        annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
-    }, async ({ offer_id }) => {
-        await api.put(`/offers/${offer_id}/win`, { win: {} });
-        return { content: [{ type: "text", text: `🏆 Angebot ${offer_id} als gewonnen markiert.` }] };
+    server.tool("get-offer", "Get a Billomat offer by ID", { id: z.number().describe("The offer ID") }, async ({ id }) => {
+        const response = await api.get(`/offers/${id}`);
+        return { content: [{ type: "text", text: JSON.stringify(response?.offer, null, 2) }] };
+    });
+    server.tool("create-offer", "Create a new offer/quote in Billomat", {
+        client_id: z.number().optional().describe("Client ID"),
+        date: z.string().optional().describe("Offer date YYYY-MM-DD"),
+        valid_days: z.number().optional().describe("Validity in days"),
+        label: z.string().optional().describe("Offer title"),
+        intro: z.string().optional(),
+        note: z.string().optional(),
+        currency_code: z.string().optional(),
+    }, async (params) => {
+        const data = Object.fromEntries(Object.entries(params).filter(([, v]) => v !== undefined));
+        const response = await api.post("/offers", { offer: data });
+        return { content: [{ type: "text", text: JSON.stringify(response?.offer, null, 2) }] };
+    });
+    server.tool("update-offer", "Update a Billomat offer", {
+        id: z.number().describe("Offer ID"),
+        client_id: z.number().optional(),
+        date: z.string().optional(),
+        valid_days: z.number().optional(),
+        label: z.string().optional(),
+        note: z.string().optional(),
+    }, async ({ id, ...rest }) => {
+        const updates = Object.fromEntries(Object.entries(rest).filter(([, v]) => v !== undefined));
+        const response = await api.put(`/offers/${id}`, { offer: updates });
+        return { content: [{ type: "text", text: JSON.stringify(response?.offer, null, 2) }] };
     });
 }
 //# sourceMappingURL=offers.js.map
